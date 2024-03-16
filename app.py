@@ -3,7 +3,7 @@ import pandas as pd
 import pickle
 
 # Load the trained SVM model
-with open('svm_model_yelp_reviews.pkl', 'rb') as file:
+with open('model.pkl', 'rb') as file:
     svm_model = pickle.load(file)
 
 # Define min and max values for sliders based on the dataset understanding
