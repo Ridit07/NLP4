@@ -11,10 +11,12 @@ nltk.download('wordnet')
 nltk.download('stopwords')
 
 # Load the SVM model
+import joblib
+
+# Load the SVM model
 @st.cache
 def load_model():
-    model = LinearSVC()
-    model.load_model('model.pkl')  # Update with the actual path to your SVM model file
+    model = joblib.load('model.pkl')  # Update with the actual path to your SVM model file
     return model
 
 # Load stopwords and initialize lemmatizer
