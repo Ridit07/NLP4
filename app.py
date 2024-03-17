@@ -6,18 +6,14 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import re
 import nltk
-nltk.download('punkt')
-nltk.download('wordnet')
-nltk.download('stopwords')
-
-# Load the SVM model
 import joblib
 
-# Load the SVM model
-@st.cache
-def load_model():
-    model = joblib.load('model.pkl')  # Update with the actual path to your SVM model file
-    return model
+# Load the SVM model and TF-IDF vectorizer
+@st.cache(allow_output_mutation=True)
+def load_model_and_vectorizer():
+    model = joblib.load('model.pkl')  # Update with the actual path to your trained SVM model file
+    vectorizer = joblib.load('vectorizer.pkl')  # Update with the actual path to your fitted TF-IDF vectorizer file
+    return model, vectorizer
 
 # Load stopwords and initialize lemmatizer
 stop_words = set(stopwords.words('english'))
@@ -31,16 +27,16 @@ def preprocess_text(text):
     tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
     return ' '.join(tokens)
 
-# Vectorize input text
-def vectorize_text(text, vectorizer):
-    return vectorizer.transform([text])
-
 # Main function to predict sentiment
 def predict_sentiment(text, model, vectorizer):
     preprocessed_text = preprocess_text(text)
     vectorized_text = vectorize_text(preprocessed_text, vectorizer)
     prediction = model.predict(vectorized_text)
     return prediction[0]
+
+# Vectorize input text
+def vectorize_text(text, vectorizer):
+    return vectorizer.transform([text])
 
 # Streamlit app
 def main():
@@ -50,9 +46,8 @@ def main():
     # Text input for user to enter review
     review_input = st.text_area('Enter your restaurant review here:', height=200)
 
-    # Load SVM model and vectorizer
-    model = load_model()
-    vectorizer = TfidfVectorizer(max_features=1000)
+    # Load SVM model and TF-IDF vectorizer
+    model, vectorizer = load_model_and_vectorizer()
 
     # Predict sentiment when user submits review
     if st.button('Predict Sentiment'):
