@@ -1,35 +1,67 @@
 import streamlit as st
 import pandas as pd
-import pickle
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import LinearSVC
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+import re
+import nltk
+nltk.download('punkt')
+nltk.download('wordnet')
+nltk.download('stopwords')
 
-# Load the trained SVM model
-with open('model.pkl', 'rb') as file:
-    svm_model = pickle.load(file)
+# Load the SVM model
+@st.cache
+def load_model():
+    model = LinearSVC()
+    model.load_model('svm_model.pkl')  # Update with the actual path to your SVM model file
+    return model
 
-# Define min and max values for sliders based on the dataset understanding
-min_stars, max_stars = 1, 5
-min_useful, max_useful = 0, 100  # Assuming these as common ranges; adjust based on your dataset
-min_funny, max_funny = 0, 100
-min_cool, max_cool = 0, 100
+# Load stopwords and initialize lemmatizer
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
 
-st.title('Yelp Review Sentiment Prediction')
+# Preprocessing function
+def preprocess_text(text):
+    text = re.sub(r'[^a-zA-Z\s]', '', text, re.I|re.A)
+    text = text.lower()
+    tokens = nltk.word_tokenize(text)
+    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
+    return ' '.join(tokens)
 
-# User inputs through sliders
-stars = st.slider('Stars', min_value=min_stars, max_value=max_stars, value=3)
-useful = st.slider('Useful', min_value=min_useful, max_value=max_useful, value=0)
-funny = st.slider('Funny', min_value=min_funny, max_value=max_funny, value=0)
-cool = st.slider('Cool', min_value=min_cool, max_value=max_cool, value=0)
+# Vectorize input text
+def vectorize_text(text, vectorizer):
+    return vectorizer.transform([text])
 
-# Display the input values
-st.write('Review Stars:', stars)
-st.write('Useful Votes:', useful)
-st.write('Funny Votes:', funny)
-st.write('Cool Votes:', cool)
+# Main function to predict sentiment
+def predict_sentiment(text, model, vectorizer):
+    preprocessed_text = preprocess_text(text)
+    vectorized_text = vectorize_text(preprocessed_text, vectorizer)
+    prediction = model.predict(vectorized_text)
+    return prediction[0]
 
-# For actual sentiment prediction, additional preprocessing might be needed to match the model's expected input
-# Here's a placeholder for prediction
-if st.button('Predict Sentiment'):
-    # Assuming a simplified model that takes these features directly
-    # Note: The actual SVM model you've saved expects textual input and is not compatible directly without text preprocessing
-    # For demonstration, we're just echoing the input values as a "prediction"
-    st.write(f'Predicted Sentiment: ... (This is a placeholder, actual prediction logic to be implemented based on model)')
+# Streamlit app
+def main():
+    st.title('Restaurant Review Sentiment Analysis')
+    st.write('This application predicts sentiment (positive or negative) of restaurant reviews.')
+
+    # Text input for user to enter review
+    review_input = st.text_area('Enter your restaurant review here:', height=200)
+
+    # Load SVM model and vectorizer
+    model = load_model()
+    vectorizer = TfidfVectorizer(max_features=1000)
+
+    # Predict sentiment when user submits review
+    if st.button('Predict Sentiment'):
+        if review_input:
+            sentiment = predict_sentiment(review_input, model, vectorizer)
+            if sentiment == 1:
+                st.success('Positive sentiment detected!')
+            else:
+                st.error('Negative sentiment detected.')
+        else:
+            st.warning('Please enter a review.')
+
+if __name__ == '__main__':
+    main()
